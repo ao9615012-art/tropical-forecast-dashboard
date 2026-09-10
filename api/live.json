@@ -1,5 +1,5 @@
 {
-  "updated_at": "2026-09-10T13:55:31.219Z",
+  "updated_at": "2026-09-10T13:56:06.362Z",
   "source": {
     "weather": "https://open-meteo.com/en/docs",
     "marine": "https://open-meteo.com/en/docs/marine-weather-api"
@@ -12,7 +12,7 @@
   "weather": {
     "latitude": 15.500878,
     "longitude": 50.49812,
-    "generationtime_ms": 5.097866058349609,
+    "generationtime_ms": 8.904814720153809,
     "utc_offset_seconds": 10800,
     "timezone": "Asia/Aden",
     "timezone_abbreviation": "GMT+3",
@@ -1073,7 +1073,7 @@
   "marine": {
     "latitude": 15.541664,
     "longitude": 50.458344,
-    "generationtime_ms": 0.1615285873413086,
+    "generationtime_ms": 0.3712177276611328,
     "utc_offset_seconds": 10800,
     "timezone": "Asia/Aden",
     "timezone_abbreviation": "GMT+3",
