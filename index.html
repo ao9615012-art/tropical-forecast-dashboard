@@ -235,6 +235,7 @@ const WEATHER_API = 'https://api.open-meteo.com/v1/forecast?latitude=' + LIVE_LA
 const MARINE_API = 'https://marine-api.open-meteo.com/v1/marine?latitude=' + LIVE_LAT + '&longitude=' + LIVE_LON +
   '&current=wave_height,wave_direction,wave_period,sea_surface_temperature' +
   '&hourly=wave_height,wave_direction,wave_period,sea_surface_temperature&forecast_days=7&timezone=auto';
+const LIVE_JSON = new URL('api/live.json', document.baseURI).href;
 function num(v, unit='') { return v === null || v === undefined ? '—' : Number(v).toFixed(1) + unit; }
 function deg(v) { return v === null || v === undefined ? '—' : Math.round(v) + '°'; }
 function liveCard(k,v) { return '<div class="live-card"><div class="k">'+k+'</div><div class="v">'+v+'</div></div>'; }
@@ -242,9 +243,18 @@ async function loadLiveData() {
   const status = document.getElementById('live-status'), error = document.getElementById('live-error');
   error.textContent = '';
   try {
-    const [wr, mr] = await Promise.all([fetch(WEATHER_API), fetch(MARINE_API)]);
-    if (!wr.ok || !mr.ok) throw new Error('تعذر الوصول إلى مصدر البيانات');
-    const w = await wr.json(), m = await mr.json(), c = w.current || {}, mc = m.current || {};
+    let w, m, sourceLabel;
+    try {
+      const local = await fetch(LIVE_JSON + '?t=' + Date.now(), {cache:'no-store'});
+      if (!local.ok) throw new Error('local API unavailable');
+      const payload = await local.json();
+      w = payload.weather; m = payload.marine; sourceLabel = 'API المستودع';
+    } catch (_) {
+      const [wr, mr] = await Promise.all([fetch(WEATHER_API), fetch(MARINE_API)]);
+      if (!wr.ok || !mr.ok) throw new Error('تعذر الوصول إلى مصدر البيانات');
+      w = await wr.json(); m = await mr.json(); sourceLabel = 'المصدر الاحتياطي المباشر';
+    }
+    const c = w.current || {}, mc = m.current || {};
     document.getElementById('live-cards').innerHTML =
       liveCard('الحرارة', num(c.temperature_2m,'°C')) + liveCard('الضغط', num(c.pressure_msl,' hPa')) +
       liveCard('الرياح', num(c.wind_speed_10m,' م/ث')) + liveCard('اتجاه الرياح', deg(c.wind_direction_10m)) +
@@ -254,7 +264,7 @@ async function loadLiveData() {
     let html = '<table class="live-table"><thead><tr><th>الوقت</th><th>حرارة</th><th>رياح</th><th>احتمال المطر</th><th>موج</th><th>SST</th></tr></thead><tbody>';
     for (let i=0;i<rows;i++) html += '<tr><td>'+h.time[i].replace('T',' ')+'</td><td>'+num(h.temperature_2m[i],'°C')+'</td><td>'+num(h.wind_speed_10m[i],' م/ث')+'</td><td>'+num(h.precipitation_probability[i],'%')+'</td><td>'+num(mh.wave_height[i],' م')+'</td><td>'+num(mh.sea_surface_temperature[i],'°C')+'</td></tr>';
     document.getElementById('live-table-wrap').innerHTML = html + '</tbody></table>';
-    status.textContent = 'آخر تحديث: ' + new Date().toLocaleString('ar-YE') + ' — 15.5°N, 50.5°E';
+    status.textContent = 'آخر تحديث: ' + new Date().toLocaleString('ar-YE') + ' — ' + sourceLabel + ' — 15.5°N, 50.5°E';
   } catch (e) { status.textContent = 'تعذر التحديث'; error.textContent = 'لم نستطع جلب البيانات الحية الآن. ستبقى الخرائط المضمنة متاحة. ' + e.message; }
 }
 loadLiveData();
