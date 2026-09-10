@@ -68,6 +68,19 @@
     padding:14px 16px; color:#e8d9a8; font-size:0.9rem;
   }
   footer { text-align:center; color:var(--mut); font-size:0.8rem; padding:22px; }
+  .live-panel { margin-top:18px; background:linear-gradient(135deg,#071d2d,#102a42); border:1px solid #1d6a91; border-radius:14px; padding:16px; }
+  .live-head { display:flex; justify-content:space-between; gap:12px; align-items:center; flex-wrap:wrap; }
+  .live-head h2 { color:#65d7ff; font-size:1.15rem; margin:0; }
+  .live-status { color:#9bd5e8; font-size:.82rem; }
+  .live-grid { display:grid; grid-template-columns:repeat(4,1fr); gap:10px; margin-top:12px; }
+  .live-card { background:rgba(4,18,31,.7); border:1px solid #1d4862; border-radius:10px; padding:12px; }
+  .live-card .k { color:#9bb8c7; font-size:.8rem; }
+  .live-card .v { color:#fff; font-size:1.25rem; font-weight:bold; margin-top:4px; }
+  .live-table { width:100%; border-collapse:collapse; margin-top:14px; font-size:.82rem; }
+  .live-table th,.live-table td { border-bottom:1px solid #21465c; padding:8px; text-align:center; }
+  .live-table th { color:#65d7ff; }
+  .live-error { color:#ffb4a8; padding-top:10px; }
+  @media (max-width:760px) { .live-grid { grid-template-columns:repeat(2,1fr); } }
 </style>
 <meta http-equiv="refresh" content="21600">
 </head>
@@ -115,6 +128,15 @@
   </div>
 
   <div class="note" id="method-note"></div>
+  <section class="live-panel" aria-live="polite">
+    <div class="live-head">
+      <h2>بيانات حية — بحر العرب وخليج عدن</h2>
+      <span class="live-status" id="live-status">جارٍ الاتصال بواجهة البيانات…</span>
+    </div>
+    <div class="live-grid" id="live-cards"></div>
+    <div id="live-table-wrap"></div>
+    <div class="live-error" id="live-error"></div>
+  </section>
 </div>
 
 <footer>أُنشئ اعتماداً على بيانات NOAA NOMADS (GFS v17) و CFSv2 — تحليل 2026-09-10 00 | أداة استرشادية للتنبؤ بالبيئات المواتية، ليست إنذاراً رسمياً</footer>
@@ -204,6 +226,39 @@ document.getElementById('method-note').innerHTML =
   'التوقعات البعيدة المدى (CFSv2) مناخية بدقة 1° وهي استرشادية وليست إنذاراً لأعاصير محددة.';
 
 renderShort(); renderLong();
+
+// بيانات حية من Open-Meteo: لا تحتاج مفتاح API وتُحدّث نماذجها باستمرار.
+const LIVE_LAT = 15.5, LIVE_LON = 50.5;
+const WEATHER_API = 'https://api.open-meteo.com/v1/forecast?latitude=' + LIVE_LAT + '&longitude=' + LIVE_LON +
+  '&current=temperature_2m,relative_humidity_2m,wind_speed_10m,wind_direction_10m,pressure_msl,precipitation,weather_code' +
+  '&hourly=temperature_2m,wind_speed_10m,wind_direction_10m,precipitation_probability,pressure_msl&forecast_days=7&timezone=auto&wind_speed_unit=ms';
+const MARINE_API = 'https://marine-api.open-meteo.com/v1/marine?latitude=' + LIVE_LAT + '&longitude=' + LIVE_LON +
+  '&current=wave_height,wave_direction,wave_period,sea_surface_temperature' +
+  '&hourly=wave_height,wave_direction,wave_period,sea_surface_temperature&forecast_days=7&timezone=auto';
+function num(v, unit='') { return v === null || v === undefined ? '—' : Number(v).toFixed(1) + unit; }
+function deg(v) { return v === null || v === undefined ? '—' : Math.round(v) + '°'; }
+function liveCard(k,v) { return '<div class="live-card"><div class="k">'+k+'</div><div class="v">'+v+'</div></div>'; }
+async function loadLiveData() {
+  const status = document.getElementById('live-status'), error = document.getElementById('live-error');
+  error.textContent = '';
+  try {
+    const [wr, mr] = await Promise.all([fetch(WEATHER_API), fetch(MARINE_API)]);
+    if (!wr.ok || !mr.ok) throw new Error('تعذر الوصول إلى مصدر البيانات');
+    const w = await wr.json(), m = await mr.json(), c = w.current || {}, mc = m.current || {};
+    document.getElementById('live-cards').innerHTML =
+      liveCard('الحرارة', num(c.temperature_2m,'°C')) + liveCard('الضغط', num(c.pressure_msl,' hPa')) +
+      liveCard('الرياح', num(c.wind_speed_10m,' م/ث')) + liveCard('اتجاه الرياح', deg(c.wind_direction_10m)) +
+      liveCard('ارتفاع الموج', num(mc.wave_height,' م')) + liveCard('اتجاه الموج', deg(mc.wave_direction)) +
+      liveCard('دورة الموج', num(mc.wave_period,' ث')) + liveCard('حرارة سطح البحر', num(mc.sea_surface_temperature,'°C'));
+    const h = w.hourly, mh = m.hourly, rows = Math.min(8, h.time.length);
+    let html = '<table class="live-table"><thead><tr><th>الوقت</th><th>حرارة</th><th>رياح</th><th>احتمال المطر</th><th>موج</th><th>SST</th></tr></thead><tbody>';
+    for (let i=0;i<rows;i++) html += '<tr><td>'+h.time[i].replace('T',' ')+'</td><td>'+num(h.temperature_2m[i],'°C')+'</td><td>'+num(h.wind_speed_10m[i],' م/ث')+'</td><td>'+num(h.precipitation_probability[i],'%')+'</td><td>'+num(mh.wave_height[i],' م')+'</td><td>'+num(mh.sea_surface_temperature[i],'°C')+'</td></tr>';
+    document.getElementById('live-table-wrap').innerHTML = html + '</tbody></table>';
+    status.textContent = 'آخر تحديث: ' + new Date().toLocaleString('ar-YE') + ' — 15.5°N, 50.5°E';
+  } catch (e) { status.textContent = 'تعذر التحديث'; error.textContent = 'لم نستطع جلب البيانات الحية الآن. ستبقى الخرائط المضمنة متاحة. ' + e.message; }
+}
+loadLiveData();
+setInterval(loadLiveData, 30 * 60 * 1000);
 </script>
 <script>(function(){function c(){var b=a.contentDocument||(a.contentWindow&&a.contentWindow.document);if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'a38ebc968fce11a6',t:'MTc4OTA0NjQ5NQ=='};var a=document.createElement('script');a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
 </html>
