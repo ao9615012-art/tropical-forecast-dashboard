@@ -1,5 +1,5 @@
 {
-  "updated_at": "2026-09-11T21:09:50.739Z",
+  "updated_at": "2026-09-11T23:29:26.964Z",
   "source": {
     "weather": "https://open-meteo.com/en/docs",
     "marine": "https://open-meteo.com/en/docs/marine-weather-api"
@@ -12,7 +12,7 @@
   "weather": {
     "latitude": 15.500878,
     "longitude": 50.49812,
-    "generationtime_ms": 6.210923194885254,
+    "generationtime_ms": 1.0983943939208984,
     "utc_offset_seconds": 10800,
     "timezone": "Asia/Aden",
     "timezone_abbreviation": "GMT+3",
@@ -29,13 +29,13 @@
       "weather_code": "wmo code"
     },
     "current": {
-      "time": "2026-09-12T00:00",
+      "time": "2026-09-12T02:15",
       "interval": 900,
-      "temperature_2m": 25.9,
-      "relative_humidity_2m": 67,
-      "wind_speed_10m": 2.02,
-      "wind_direction_10m": 110,
-      "pressure_msl": 1010.5,
+      "temperature_2m": 24.5,
+      "relative_humidity_2m": 76,
+      "wind_speed_10m": 0.6,
+      "wind_direction_10m": 90,
+      "pressure_msl": 1010,
       "precipitation": 0,
       "weather_code": 3
     },
@@ -1073,7 +1073,7 @@
   "marine": {
     "latitude": 15.541664,
     "longitude": 50.458344,
-    "generationtime_ms": 0.18596649169921875,
+    "generationtime_ms": 0.19347667694091797,
     "utc_offset_seconds": 10800,
     "timezone": "Asia/Aden",
     "timezone_abbreviation": "GMT+3",
@@ -1087,7 +1087,7 @@
       "sea_surface_temperature": "°C"
     },
     "current": {
-      "time": "2026-09-12T00:00",
+      "time": "2026-09-12T02:15",
       "interval": 900,
       "wave_height": null,
       "wave_direction": null,
