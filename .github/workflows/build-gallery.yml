@@ -1,0 +1,59 @@
+name: Rebuild rainfall gallery
+
+on:
+  schedule:
+    - cron: "15 * * * *"
+  workflow_dispatch:
+  push:
+    paths:
+      - "make_gallery.py"
+      - "*.png"
+      - "*.csv"
+      - "**/*_stations.csv"
+      - "**/*_cities.csv"
+
+permissions:
+  contents: write
+
+concurrency:
+  group: rebuild-rainfall-gallery
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Check for rainfall map assets
+        id: assets
+        shell: bash
+        run: |
+          shopt -s nullglob
+          assets=(hadramout_v17_total_24h_*.png)
+          if ((${#assets[@]} > 0)); then
+            echo "available=true" >> "$GITHUB_OUTPUT"
+            echo "Found ${#assets[@]} rainfall asset(s)."
+          else
+            echo "available=false" >> "$GITHUB_OUTPUT"
+            echo "No rainfall PNG assets found; keeping the live dashboard unchanged."
+          fi
+
+      - name: Build index and embedded preview
+        if: steps.assets.outputs.available == 'true'
+        run: python3 make_gallery.py
+
+      - name: Commit generated gallery
+        if: steps.assets.outputs.available == 'true'
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add index.html preview.html
+          if git diff --cached --quiet; then
+            echo "No gallery change"
+          else
+            git commit -m "auto-rebuild rainfall gallery"
+            git push
+          fi
